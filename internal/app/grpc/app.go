@@ -47,7 +47,7 @@ func (app *App) Run() error {
 	return nil
 }
 
-func (app *App) Stop() error {
+func (app *App) Stop() {
 	const op = "grpcapp.Stop"
 
 	log := app.log.With(slog.String("op", op))
@@ -56,5 +56,4 @@ func (app *App) Stop() error {
 
 	log.Info("grpc server stopped")
 
-	return nil
 }
