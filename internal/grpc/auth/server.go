@@ -1,11 +1,14 @@
-package auth
+package authgrpc
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	ssov1 "github.com/k1v4/protos/gen/sso"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"sso/internal/services/auth"
 )
 
 const (
@@ -25,7 +28,7 @@ type serverApi struct {
 
 func Register(grpc *grpc.Server, auth Auth) {
 	ssov1.RegisterAuthServer(grpc, &serverApi{
-		auth: nil,
+		auth: auth,
 	})
 }
 
@@ -44,7 +47,10 @@ func (s *serverApi) Login(ctx context.Context, req *ssov1.LoginRequest) (*ssov1.
 
 	token, err := s.auth.Login(ctx, req.GetEmail(), req.GetPassword(), req.GetAppId())
 	if err != nil {
-		// TODO доп проверки
+		if errors.Is(err, auth.ErrInvalidCredentials) {
+			return nil, status.Error(codes.InvalidArgument, "invalid credentials")
+		}
+
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
@@ -63,8 +69,12 @@ func (s *serverApi) Register(ctx context.Context, req *ssov1.RegisterRequest) (*
 	}
 
 	userId, err := s.auth.RegisterNewUser(ctx, req.GetEmail(), req.GetPassword())
+	fmt.Println(userId, err)
 	if err != nil {
-		// TODO доп проверки
+		if errors.Is(err, auth.ErrUserExist) {
+			return nil, status.Error(codes.InvalidArgument, "user already exists")
+		}
+
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
